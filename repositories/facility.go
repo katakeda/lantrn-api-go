@@ -33,8 +33,9 @@ type FacilityMedia struct {
 }
 
 type GetFacilitiesFilter struct {
-	Lat string
-	Lng string
+	Lat  string
+	Lng  string
+	Sort string
 }
 
 func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilter) (facilities []Facility, err error) {
@@ -61,11 +62,19 @@ func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilt
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select(cols...).
 		From(`"facility"`).
-		OrderBy("name").
 		Limit(maxCount)
 
 	if filter.Lat != "" && filter.Lng != "" {
 		psql = psql.Where("ST_DWithin(geom, ST_MakePoint(?, ?)::geography, ?)", filter.Lng, filter.Lat, defaultRadius)
+	}
+
+	switch filter.Sort {
+	case "za":
+		psql = psql.OrderBy("name DESC")
+	case "new":
+		psql = psql.OrderBy("id DESC")
+	default:
+		psql = psql.OrderBy("name")
 	}
 
 	sqlStmt, sqlArgs, err := psql.ToSql()

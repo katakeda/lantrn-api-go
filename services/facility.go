@@ -26,7 +26,11 @@ func (s *Service) getFacilities(c *gin.Context) (err error) {
 	}()
 
 	params := c.Request.URL.Query()
-	facilities, err := s.repo.GetFacilities(c, repositories.GetFacilitiesFilter{Lat: params.Get("lat"), Lng: params.Get("lng")})
+	facilities, err := s.repo.GetFacilities(c, repositories.GetFacilitiesFilter{
+		Lat:  params.Get("lat"),
+		Lng:  params.Get("lng"),
+		Sort: params.Get("sort"),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to fetch facilities | %w", err)
 	}
