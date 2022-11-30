@@ -3,6 +3,7 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
@@ -10,7 +11,7 @@ import (
 )
 
 const (
-	maxCount      = 50
+	perPageMax    = 25
 	defaultRadius = 80000 // 80km
 )
 
@@ -36,9 +37,20 @@ type GetFacilitiesFilter struct {
 	Lat  string
 	Lng  string
 	Sort string
+	Page string
 }
 
-func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilter) (facilities []Facility, err error) {
+type GetMetadata struct {
+	Page  int `json:"page"`
+	Total int `json:"total"`
+}
+
+type GetFacilitiesResponse struct {
+	Data     []Facility  `json:"data"`
+	Metadata GetMetadata `json:"metadata"`
+}
+
+func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilter) (response *GetFacilitiesResponse, err error) {
 	tx, ok := ctx.Value(TxnKey).(pgx.Tx)
 	if !ok || tx == nil {
 		tx, _ = r.db.Begin(ctx)
@@ -59,14 +71,13 @@ func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilt
 		"facility_id",
 	}
 
+	countSql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Select("COUNT(*)").
+		From(`"facility"`)
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
 		Select(cols...).
 		From(`"facility"`).
-		Limit(maxCount)
-
-	if filter.Lat != "" && filter.Lng != "" {
-		psql = psql.Where("ST_DWithin(geom, ST_MakePoint(?, ?)::geography, ?)", filter.Lng, filter.Lat, defaultRadius)
-	}
+		Limit(perPageMax)
 
 	switch filter.Sort {
 	case "za":
@@ -77,25 +88,61 @@ func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilt
 		psql = psql.OrderBy("name")
 	}
 
-	sqlStmt, sqlArgs, err := psql.ToSql()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+	if filter.Lat != "" && filter.Lng != "" {
+		countSql = countSql.Where("ST_DWithin(geom, ST_MakePoint(?, ?)::geography, ?)", filter.Lng, filter.Lat, defaultRadius)
+		psql = psql.Where("ST_DWithin(geom, ST_MakePoint(?, ?)::geography, ?)", filter.Lng, filter.Lat, defaultRadius)
 	}
 
-	rows, err := tx.Query(ctx, sqlStmt, sqlArgs...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to execute query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+	offset := 0
+	if filter.Page != "" {
+		offset, err = strconv.Atoi(filter.Page)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse query | %w", err)
+		}
+		psql = psql.Offset(uint64(offset-1) * perPageMax)
 	}
 
-	if err := pgxscan.ScanAll(&facilities, rows); err != nil {
-		return nil, fmt.Errorf("failed to scan rows | %w", err)
+	var totalCnt int
+	{
+		sqlStmt, sqlArgs, err := countSql.ToSql()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+		}
+		rows, err := tx.Query(ctx, sqlStmt, sqlArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+		}
+		if err := pgxscan.ScanOne(&totalCnt, rows); err != nil {
+			return nil, fmt.Errorf("failed to scan rows | %w", err)
+		}
+	}
+
+	var facilities []Facility
+	{
+		sqlStmt, sqlArgs, err := psql.ToSql()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+		}
+		rows, err := tx.Query(ctx, sqlStmt, sqlArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to execute query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+		}
+		if err := pgxscan.ScanAll(&facilities, rows); err != nil {
+			return nil, fmt.Errorf("failed to scan rows | %w", err)
+		}
 	}
 
 	if err := r.setFacilityMedias(ctx, facilities); err != nil {
 		return nil, fmt.Errorf("failed to set facility medias | %w", err)
 	}
 
-	return facilities, nil
+	return &GetFacilitiesResponse{
+		Data: facilities,
+		Metadata: GetMetadata{
+			Page:  offset,
+			Total: totalCnt,
+		},
+	}, nil
 }
 
 func (r *Repository) GetFacility(ctx context.Context, id string) (facility *Facility, err error) {

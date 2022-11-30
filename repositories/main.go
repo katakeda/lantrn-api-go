@@ -19,7 +19,7 @@ type IRepository interface {
 	CommitTxn(ctx context.Context) error
 	RollbackTxn(ctx context.Context) error
 
-	GetFacilities(ctx context.Context, filter GetFacilitiesFilter) ([]Facility, error)
+	GetFacilities(ctx context.Context, filter GetFacilitiesFilter) (*GetFacilitiesResponse, error)
 	GetFacility(ctx context.Context, id string) (*Facility, error)
 }
 
