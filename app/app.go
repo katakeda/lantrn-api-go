@@ -37,7 +37,7 @@ func (app *App) Initialize() {
 }
 
 func (app *App) Run() {
-	err := app.router.Run(":" + os.Getenv("PORT"))
+	err := app.router.Run(":8080")
 	if err != nil {
 		log.Fatalln("Failed to run app", err)
 	}
