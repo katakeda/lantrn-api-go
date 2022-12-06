@@ -21,6 +21,7 @@ type IRepository interface {
 
 	GetFacilities(ctx context.Context, filter GetFacilitiesFilter) (*GetFacilitiesResponse, error)
 	GetFacility(ctx context.Context, id string) (*Facility, error)
+	CreateSubscription(ctx context.Context, payload CreateSubscriptionPayload) (*Subscription, error)
 }
 
 type Repository struct {

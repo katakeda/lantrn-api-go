@@ -34,6 +34,7 @@ func (app *App) Initialize() {
 	app.router = gin.Default()
 	app.router.GET("/facilities", svc.GetFacilities)
 	app.router.GET("/facilities/:id", svc.GetFacility)
+	app.router.POST("/subscriptions", svc.CreateSubscription)
 }
 
 func (app *App) Run() {
