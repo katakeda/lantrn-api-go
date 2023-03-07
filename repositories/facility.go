@@ -40,11 +40,6 @@ type GetFacilitiesFilter struct {
 	Page string
 }
 
-type GetMetadata struct {
-	Page  int `json:"page"`
-	Total int `json:"total"`
-}
-
 type GetFacilitiesResponse struct {
 	Data     []Facility  `json:"data"`
 	Metadata GetMetadata `json:"metadata"`

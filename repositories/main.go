@@ -14,6 +14,11 @@ const (
 	TxnKey CtxKey = "txnKey"
 )
 
+type GetMetadata struct {
+	Page  int `json:"page"`
+	Total int `json:"total"`
+}
+
 type IRepository interface {
 	BeginTxn(ctx context.Context) (context.Context, error)
 	CommitTxn(ctx context.Context) error
@@ -21,6 +26,7 @@ type IRepository interface {
 
 	GetFacilities(ctx context.Context, filter GetFacilitiesFilter) (*GetFacilitiesResponse, error)
 	GetFacility(ctx context.Context, id string) (*Facility, error)
+	GetSubscriptions(ctx context.Context, filter GetSubscriptionsFilter) (*GetSubscriptionsResponse, error)
 	CreateSubscription(ctx context.Context, payload CreateSubscriptionPayload) (*Subscription, error)
 }
 
