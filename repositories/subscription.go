@@ -31,9 +31,10 @@ type GetSubscriptionsResponse struct {
 }
 
 type CreateSubscriptionPayload struct {
-	Email      string `json:"email"`
-	TargetDate string `json:"targetDate"`
-	FacilityId int    `json:"facilityId"`
+	Email      string  `json:"email"`
+	TargetDate string  `json:"targetDate"`
+	FacilityId int     `json:"facilityId"`
+	Status     *string `json:"status"`
 }
 
 func (r *Repository) GetSubscriptions(ctx context.Context, filter GetSubscriptionsFilter) (response *GetSubscriptionsResponse, err error) {
@@ -135,8 +136,8 @@ func (r *Repository) CreateSubscription(ctx context.Context, payload CreateSubsc
 		}()
 	}
 
-	cols := []string{"email", "target_date", "facility_id"}
-	vals := []interface{}{payload.Email, payload.TargetDate, payload.FacilityId}
+	cols := []string{"email", "target_date", "facility_id", "status"}
+	vals := []interface{}{payload.Email, payload.TargetDate, payload.FacilityId, payload.Status}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	sqlStmt, sqlArgs, err := psql.Insert(`"subscription"`).

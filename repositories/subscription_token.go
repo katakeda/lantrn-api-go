@@ -100,14 +100,14 @@ func (r *Repository) CreateSubscriptionToken(ctx context.Context, payload Create
 	sqlStmt, sqlArgs, err := psql.Insert(`"subscription_token"`).
 		Columns(cols...).
 		Values(vals...).
-		Suffix("RETURNING id").
+		Suffix("RETURNING id, token").
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %s args: %v | %w", sqlStmt, sqlArgs, err)
 	}
 
 	var newSubscriptionToken SubscriptionToken
-	if err := tx.QueryRow(ctx, sqlStmt, sqlArgs...).Scan(&newSubscriptionToken.Id); err != nil {
+	if err := tx.QueryRow(ctx, sqlStmt, sqlArgs...).Scan(&newSubscriptionToken.Id, &newSubscriptionToken.Token); err != nil {
 		return nil, fmt.Errorf("failed to execute: %s args: %v | %w", sqlStmt, sqlArgs, err)
 	}
 
