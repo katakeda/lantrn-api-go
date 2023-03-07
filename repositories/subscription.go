@@ -37,6 +37,10 @@ type CreateSubscriptionPayload struct {
 	Status     *string `json:"status"`
 }
 
+type UpdateSubscriptionPayload struct {
+	Status *string `json:"status"`
+}
+
 func (r *Repository) GetSubscriptions(ctx context.Context, filter GetSubscriptionsFilter) (response *GetSubscriptionsResponse, err error) {
 	tx, ok := ctx.Value(TxnKey).(pgx.Tx)
 	if !ok || tx == nil {
@@ -155,4 +159,37 @@ func (r *Repository) CreateSubscription(ctx context.Context, payload CreateSubsc
 	}
 
 	return &newSubscription, nil
+}
+
+func (r *Repository) UpdateSubscription(ctx context.Context, id string, payload UpdateSubscriptionPayload) (subscription *Subscription, err error) {
+	tx, ok := ctx.Value(TxnKey).(pgx.Tx)
+	if !ok || tx == nil {
+		tx, _ = r.db.Begin(ctx)
+		defer func() error {
+			if err != nil {
+				return tx.Rollback(ctx)
+			}
+			return tx.Commit(ctx)
+		}()
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar).
+		Update("subscription").
+		Where(sq.Eq{"id": id})
+
+	if payload.Status != nil {
+		psql = psql.Set("status", payload.Status)
+	}
+
+	sqlStmt, sqlArgs, err := psql.Suffix("RETURNING id").ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build query: %s args: %v | %w", sqlStmt, sqlArgs, err)
+	}
+
+	var updatedSubscription Subscription
+	if err := tx.QueryRow(ctx, sqlStmt, sqlArgs...).Scan(&updatedSubscription.Id); err != nil {
+		return nil, fmt.Errorf("failed to execute: %s args: %v | %w", sqlStmt, sqlArgs, err)
+	}
+
+	return &updatedSubscription, nil
 }

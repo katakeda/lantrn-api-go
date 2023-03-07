@@ -17,6 +17,10 @@ func (s *Service) CreateSubscription(c *gin.Context) {
 	s.createSubscription(c)
 }
 
+func (s *Service) UpdateSubscription(c *gin.Context) {
+	s.updateSubscription(c)
+}
+
 func (s *Service) getSubscriptions(c *gin.Context) (err error) {
 	defer func() {
 		if err != nil {
@@ -63,6 +67,31 @@ func (s *Service) createSubscription(c *gin.Context) (err error) {
 	subscription, err := s.repo.CreateSubscription(ctx, payload)
 	if err != nil {
 		return fmt.Errorf("failed to create subscription | %w", err)
+	}
+
+	c.JSON(http.StatusOK, subscription)
+
+	return s.repo.CommitTxn(ctx)
+}
+
+func (s *Service) updateSubscription(c *gin.Context) (err error) {
+	defer func() {
+		if err != nil {
+			log.Println("Failed to update subscription |", err)
+			c.JSON(http.StatusInternalServerError, "Something went wrong while updating subscription")
+		}
+	}()
+
+	id := c.Param("id")
+	payload := repositories.UpdateSubscriptionPayload{}
+	if err := c.BindJSON(&payload); err != nil {
+		return fmt.Errorf("failed to parse payload | %w", err)
+	}
+
+	ctx, _ := s.repo.BeginTxn(c)
+	subscription, err := s.repo.UpdateSubscription(ctx, id, payload)
+	if err != nil {
+		return fmt.Errorf("failed to update subscription | %w", err)
 	}
 
 	c.JSON(http.StatusOK, subscription)
