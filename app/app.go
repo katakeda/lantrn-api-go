@@ -36,6 +36,8 @@ func (app *App) Initialize() {
 	app.router.GET("/facilities/:id", svc.GetFacility)
 	app.router.GET("/subscriptions", svc.GetSubscriptions)
 	app.router.POST("/subscriptions", svc.CreateSubscription)
+	app.router.GET("/subscription_tokens", svc.GetSubscriptionTokens)
+	app.router.POST("/subscription_tokens", svc.CreateSubscriptionToken)
 }
 
 func (app *App) Run() {

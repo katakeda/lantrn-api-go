@@ -28,6 +28,8 @@ type IRepository interface {
 	GetFacility(ctx context.Context, id string) (*Facility, error)
 	GetSubscriptions(ctx context.Context, filter GetSubscriptionsFilter) (*GetSubscriptionsResponse, error)
 	CreateSubscription(ctx context.Context, payload CreateSubscriptionPayload) (*Subscription, error)
+	GetSubscriptionTokens(ctx context.Context, filter GetSubscriptionTokensFilter) (*GetSubscriptionTokensResponse, error)
+	CreateSubscriptionToken(ctx context.Context, payload CreateSubscriptionTokenPayload) (*SubscriptionToken, error)
 }
 
 type Repository struct {
