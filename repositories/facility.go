@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"strings"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/georgysavva/scany/pgxscan"
@@ -36,6 +37,7 @@ type FacilityMedia struct {
 type GetFacilitiesFilter struct {
 	Lat  string
 	Lng  string
+	Ids  string
 	Sort string
 	Page string
 }
@@ -86,6 +88,12 @@ func (r *Repository) GetFacilities(ctx context.Context, filter GetFacilitiesFilt
 	if filter.Lat != "" && filter.Lng != "" {
 		countSql = countSql.Where("ST_DWithin(geom, ST_MakePoint(?, ?)::geography, ?)", filter.Lng, filter.Lat, defaultRadius)
 		psql = psql.Where("ST_DWithin(geom, ST_MakePoint(?, ?)::geography, ?)", filter.Lng, filter.Lat, defaultRadius)
+	}
+
+	if filter.Ids != "" {
+		ids := strings.Split(filter.Ids, ",")
+		countSql = countSql.Where(sq.Eq{"id": ids})
+		psql = psql.Where(sq.Eq{"id": ids})
 	}
 
 	offset := 0

@@ -29,6 +29,7 @@ func (s *Service) getFacilities(c *gin.Context) (err error) {
 	response, err := s.repo.GetFacilities(c, repositories.GetFacilitiesFilter{
 		Lat:  params.Get("lat"),
 		Lng:  params.Get("lng"),
+		Ids:  params.Get("ids"),
 		Sort: params.Get("sort"),
 		Page: params.Get("page"),
 	})
